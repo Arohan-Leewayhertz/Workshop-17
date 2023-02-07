@@ -14,7 +14,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/test", {
 mongoose.connection.on("connected", () => {
   console.log("Database connected");
 });
-mongoose.connection.on("error", () => {
+mongoose.connection.on("error", (error) => {
   console.log("Database error");
 });
 
@@ -28,12 +28,18 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// HTTP POST method
+
 app.post("/users", async (req, res) => {
   try {
     const newUser = new UserModel(req.body);
-    const savedUser = await newUser.save();
-    res.send(savedUser);
+    const extUser = await UserModel.findOne({ username: newUser.username })
+    if (extUser) {
+      res.send("The User already exist");
+    }
+    else {
+      const savedUser = await newUser.save();
+      res.send(savedUser);
+    }
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -45,8 +51,7 @@ app.put("/users/:username", async (req, res) => {
     const username = req.params.username;
     const updatedUser = await UserModel.findOneAndUpdate(
       { username },
-      req.body,
-      { new: true }
+      req.body
     );
     if (!updatedUser) {
       res.status(404).send("User not found");
@@ -64,8 +69,7 @@ app.delete("/users/:username", async (req, res) => {
     const deletedUser = await UserModel.findOneAndDelete({ username });
     if (!deletedUser) {
       res.status(404).send("User not found");
-    }
-    res.send(deletedUser);
+    } else { res.send(deletedUser); }
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -79,3 +83,4 @@ app.options("/users", (req, res) => {
 app.listen(port, () => {
   console.log("Running on port 8080");
 });
+
